@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.5.1 - 2026-11-07
+
+### Fixed
+- `install.sh` (VERSION 1.5.1): the menu's "server" versions were read from raw.githubusercontent.com, which kept serving old copies (showing "UPDATE AVAILABLE, server 1.2.0" after 1.5.0 was published). The menu now reads them from the GitHub tarball once when it starts.
+
 ## 1.5.0 - 2026-11-07
 
 ### Changed

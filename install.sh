@@ -6,7 +6,7 @@
 # Installs, updates, checks and removes the checker and the dashboard widget.
 # Widget settings (threshold, sample time, watch list) are kept across updates.
 
-VERSION="1.5.0"
+VERSION="1.5.1"
 
 REPO_RAW=${WG_REPO_RAW:-https://raw.githubusercontent.com/simonleroux/pfsense_widget/main}
 REPO_TARBALL=${WG_TARBALL_URL:-https://github.com/simonleroux/pfsense_widget/archive/refs/heads/main.tar.gz}
@@ -81,15 +81,27 @@ download() {
     fi
 }
 
-# VERSION of a file in the repo on GitHub. The timestamp in the URL stops GitHub's cache
-# from returning an old copy.
-server_version() {
-    tmp=$(mktemp) || { echo "unavailable"; return; }
-    v=""
-    if download "$REPO_RAW/$1?t=$(date +%s)" "$tmp" 2>/dev/null; then
-        v=$(sed -n 's/.*VERSION="\([^"]*\)".*/\1/p' "$tmp" | head -n 1)
+# Versions of the repo files, read from the GitHub tarball once per menu start.
+# raw.githubusercontent.com keeps serving old copies for a long time, so it is not used here.
+SERVER_VERSIONS=""
+
+refresh_server_versions() {
+    SERVER_VERSIONS=""
+    tmp=$(mktemp -d) || return 1
+    if download "$REPO_TARBALL" "$tmp/repo.tar.gz" 2>/dev/null && tar -xzf "$tmp/repo.tar.gz" -C "$tmp" 2>/dev/null; then
+        top=$(ls -d "$tmp"/*/ 2>/dev/null | head -n 1)
+        for f in install.sh scripts/wg-stream-check.sh widget/wireguard_streaming.widget.php; do
+            v=$(sed -n 's/.*VERSION="\([^"]*\)".*/\1/p' "$top$f" 2>/dev/null | head -n 1)
+            SERVER_VERSIONS="$SERVER_VERSIONS
+$f=${v:-unavailable}"
+        done
     fi
-    rm -f "$tmp"
+    rm -rf "$tmp"
+}
+
+# VERSION of a repo file, from the versions loaded at menu start
+server_version() {
+    v=$(printf '%s\n' "$SERVER_VERSIONS" | sed -n "s|^$1=||p" | head -n 1)
     echo "${v:-unavailable}"
 }
 
@@ -312,6 +324,7 @@ show_menu() {
 }
 
 menu() {
+    refresh_server_versions
     while :; do
         show_menu
         printf 'Select an option [0-4]: '
