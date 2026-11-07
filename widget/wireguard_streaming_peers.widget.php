@@ -8,7 +8,7 @@
  * Install: copy to /usr/local/www/widgets/widgets/wireguard_streaming_peers.widget.php
  *          with widget/lib/wireguard_streaming_core.inc in the same folder, and
  *          widget/include/wireguard_streaming_peers.inc to /usr/local/www/widgets/include/
- * VERSION="1.5.3"
+ * VERSION="1.5.4"
  */
 
 // pfSense includes
@@ -47,7 +47,7 @@ if (isset($_POST['ajax'])) {
     exit();
 }
 ?>
-	<div class="table-responsive" style="height: 300px; overflow-y: auto;">
+	<div class="table-responsive">
 		<table class="table table-hover table-striped table-condensed" style="overflow-x: visible;">
 			<thead>
 				<th><?=gettext('Tunnel')?></th>

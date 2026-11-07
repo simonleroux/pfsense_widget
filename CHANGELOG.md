@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.5.5 - 2026-11-07
+
+### Changed
+- `widget/wireguard_streaming.widget.php` (VERSION 1.5.3) and `widget/wireguard_streaming_peers.widget.php` (VERSION 1.5.4): the fixed 300 px table height is removed, so each widget sizes to its table again. The two widgets may differ in height.
+
 ## 1.5.4 - 2026-11-07
 
 ### Changed
