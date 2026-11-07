@@ -19,6 +19,7 @@ BIN_DIR=${WG_STREAM_BIN_DIR:-/usr/local/bin}
 WIDGET_DIR=${WG_STREAM_WIDGET_DIR:-/usr/local/www/widgets/widgets}
 CHECKER="$BIN_DIR/wg-stream-check.sh"
 WIDGET="$WIDGET_DIR/wg_stream_monitor.widget.php"
+REPO_TARBALL=${WG_TARBALL_URL:-https://github.com/simonleroux/pfsense_widget/archive/refs/heads/main.tar.gz}
 
 say()  { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
@@ -119,6 +120,57 @@ show_status() {
     if [ -d "$WIDGET_DIR" ]; then ok "widget directory exists"; else bad "widget directory missing ($WIDGET_DIR)"; fi
 }
 
+download() {
+    # download URL DEST_FILE
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$1" -o "$2"
+    else
+        fetch -o "$2" "$1"
+    fi
+}
+
+update_all() {
+    say "This downloads the latest version from GitHub into $SRC_DIR,"
+    say "overwriting local changes there, then reinstalls the checker and widget."
+    if ! confirm "Continue?"; then
+        say "Cancelled."
+        return 0
+    fi
+
+    TMP=$(mktemp -d) || { warn "cannot create a temp directory"; return 1; }
+    if ! download "$REPO_TARBALL" "$TMP/repo.tar.gz"; then
+        warn "download failed: $REPO_TARBALL"
+        rm -rf "$TMP"
+        return 1
+    fi
+    mkdir "$TMP/new" && tar -xzf "$TMP/repo.tar.gz" -C "$TMP/new" --strip-components=1 || {
+        warn "could not unpack the download"
+        rm -rf "$TMP"
+        return 1
+    }
+    if [ ! -f "$TMP/new/install.sh" ] || [ ! -f "$TMP/new/scripts/wg-stream-check.sh" ] || [ ! -f "$TMP/new/widget/wg_stream_monitor.widget.php" ]; then
+        warn "the download is missing expected files; nothing was changed"
+        rm -rf "$TMP"
+        return 1
+    fi
+
+    if ! cp -R "$TMP/new/." "$SRC_DIR/"; then
+        warn "could not copy the new files into $SRC_DIR"
+        rm -rf "$TMP"
+        return 1
+    fi
+    rm -rf "$TMP"
+    ok "project files updated in $SRC_DIR"
+
+    install_checker
+    install_widget
+    say ""
+    say "Update finished. Restarting the menu with the new installer."
+    pause
+    # Replace this process with the updated menu, so the old script is no longer running.
+    exec sh "$SRC_DIR/install.sh"
+}
+
 uninstall() {
     if ! confirm "Remove the checker and widget from this firewall?"; then
         say "Cancelled."
@@ -141,6 +193,7 @@ menu() {
         say " 4) Test checker now"
         say " 5) Show status"
         say " 6) Uninstall"
+        say " 7) Update all (download latest from GitHub and reinstall)"
         say " 0) Exit"
         say ""
         printf 'Choose an option: '
@@ -166,6 +219,8 @@ menu() {
             6)
                 uninstall
                 pause ;;
+            7)
+                update_all ;;
             0|q|Q)
                 break ;;
             *)
