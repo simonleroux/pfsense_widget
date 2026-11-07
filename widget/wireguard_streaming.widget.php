@@ -3,7 +3,7 @@
  * wireguard_streaming.widget.php
  *
  * Fork of pfSense's WireGuard dashboard widget (wireguard.widget.php from the pfSense
- * WireGuard package). The table has one row per peer with its streaming status.
+ * WireGuard package). The table has one row per tunnel, summing its peers.
  * Streaming comes from scripts/wg-stream-check.sh, with a confirmation failsafe
  * (a peer changes state only after N checks in a row).
  *
@@ -12,11 +12,11 @@
  *   Copyright (c) 2021 R. Christian McDonald, Vajonam
  *   Copyright (c) 2020 Ascrod
  *   Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
- * Changes in this fork: per-peer streaming rows, streaming settings, failsafe.
+ * Changes in this fork: per-tunnel streaming totals, streaming settings, failsafe.
  *
  * Install: copy to /usr/local/www/widgets/widgets/wireguard_streaming.widget.php
  *          and widget/include/wireguard_streaming.inc to /usr/local/www/widgets/include/
- * VERSION="1.3.0"
+ * VERSION="1.4.0"
  */
 
 // pfSense includes
@@ -179,10 +179,10 @@ function wgs_compose_body($s, $checker, $state_file) {
     $a_devices = wg_get_status();
 
     if (empty(config_get_path('installedpackages/wireguard/tunnels/item', []))) {
-        return '<tr><td colspan="8">' . htmlspecialchars(gettext('No WireGuard tunnels have been configured.')) . '</td></tr>';
+        return '<tr><td colspan="6">' . htmlspecialchars(gettext('No WireGuard tunnels have been configured.')) . '</td></tr>';
     }
     if (empty($a_devices)) {
-        return '<tr><td colspan="8">' . htmlspecialchars(gettext('The WireGuard service is not running.')) . '</td></tr>';
+        return '<tr><td colspan="6">' . htmlspecialchars(gettext('The WireGuard service is not running.')) . '</td></tr>';
     }
 
     $peers = wgs_checker_peers($checker, $s);
@@ -207,29 +207,29 @@ function wgs_compose_body($s, $checker, $state_file) {
             }
         }
 
-        if (count($mine) === 0) {
-            $note = ($peers === null) ? gettext('checker failed') : gettext('no peers');
-            $html .= '<tr>' . $tunnel_cells
-                . '<td colspan="4"><small class="text-muted">' . htmlspecialchars($note) . '</small></td>'
-                . $traffic_cells . '</tr>';
-            continue;
+        // Sum the tunnel's peers: how many are streaming, and their combined rate
+        $streaming = 0;
+        $rate = 0.0;
+        foreach ($mine as $p) {
+            if ($p['status'] === 'streaming') {
+                $streaming++;
+            }
+            $rate += $p['kbps'];
         }
 
-        foreach ($mine as $p) {
-            $pending = '';
-            if (!empty($p['pending'])) {
-                $pending = ' <small class="text-muted">' . htmlspecialchars($p['pending']) . ' '
-                    . (int)$p['count'] . ' of ' . (int)$s['confirm_checks'] . '</small>';
-            }
-            $html .= '<tr>' . $tunnel_cells
-                . '<td title="' . htmlspecialchars($p['peer']) . '">' . htmlspecialchars(substr($p['peer'], 0, 10)) . '...<br>'
-                . '<small class="text-muted">' . htmlspecialchars($p['endpoint']) . '</small></td>'
-                . '<td>' . htmlspecialchars(number_format($p['kbps'], 1)) . ' kbps</td>'
-                . '<td>' . wgs_status_badge($p['status']) . $pending . '</td>'
-                . '<td><small>' . htmlspecialchars($p['allowed_ips']) . '</small></td>'
-                . $traffic_cells
-                . '</tr>';
+        if ($peers === null) {
+            $streaming_cell = '<small class="text-muted">' . htmlspecialchars(gettext('checker failed')) . '</small>';
+            $rate_cell = '';
+        } else {
+            $streaming_cell = htmlspecialchars($streaming . ' ' . gettext('of') . ' ' . count($mine) . ' ' . gettext('peers'));
+            $rate_cell = htmlspecialchars(number_format($rate, 1)) . ' kbps';
         }
+
+        $html .= '<tr>' . $tunnel_cells
+            . '<td>' . $streaming_cell . '</td>'
+            . '<td>' . $rate_cell . '</td>'
+            . $traffic_cells
+            . '</tr>';
     }
     return $html;
 }
@@ -245,10 +245,8 @@ if (isset($_POST['ajax'])) {
 			<thead>
 				<th><?=gettext('Tunnel')?></th>
 				<th><?=gettext('Description')?></th>
-				<th><?=gettext('Peer')?></th>
+				<th><?=gettext('Streaming')?></th>
 				<th><?=gettext('Rate')?></th>
-				<th><?=gettext('Status')?></th>
-				<th><?=gettext('Allowed IPs')?></th>
 				<th><?=gettext('RX')?></th>
 				<th><?=gettext('TX')?></th>
 			</thead>

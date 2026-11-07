@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.4.0 - 2026-11-07
+
+### Changed
+- `widget/wireguard_streaming.widget.php` (VERSION 1.4.0): one row per tunnel again. The Streaming column shows how many of the tunnel's peers are streaming ("N of M peers"), and the Rate column is the sum of the tunnel's peer rates. Peer rows are gone. The table columns are Tunnel, Description, Streaming, Rate, RX, TX.
+
 ## 1.3.0 - 2026-11-07
 
 ### Changed
