@@ -7,7 +7,7 @@
  * Settings are changed with the wrench icon on the widget and saved in pfSense.
  *
  * Install: copy to /usr/local/www/widgets/widgets/wg_stream_monitor.widget.php
- * VERSION="1.1.3"
+ * VERSION="1.1.4"
  */
 require_once("guiconfig.inc");
 
@@ -201,7 +201,7 @@ function wg_render_table($peers, $s) {
 
     $names = wg_tunnel_names();
     $html = '<table class="table table-striped table-condensed"><thead><tr>'
-          . '<th>Tunnel</th><th>Endpoint</th><th>Rate</th><th>Status</th>'
+          . '<th>Interface</th><th>Tunnel</th><th>Endpoint</th><th>Rate</th><th>Status</th>'
           . '</tr></thead><tbody>';
     foreach ($rows as $p) {
         $label = isset($names[$p['interface']]) ? $names[$p['interface']] : $p['interface'];
@@ -211,6 +211,7 @@ function wg_render_table($peers, $s) {
                 . (int)$p['count'] . ' of ' . (int)$s['confirm_checks'] . '</small>';
         }
         $html .= '<tr>'
+              . '<td>' . htmlspecialchars($p['interface']) . '</td>'
               . '<td title="' . htmlspecialchars($p['peer']) . '">' . htmlspecialchars($label) . '</td>'
               . '<td>' . htmlspecialchars($p['endpoint']) . '</td>'
               . '<td>' . number_format($p['kbps'], 1) . ' kbps</td>'

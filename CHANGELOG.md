@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.1.4 - 2026-11-07
+
+### Changed
+- `widget/wg_stream_monitor.widget.php` (VERSION 1.1.4): the table has an Interface column (e.g. tun_wg1) next to the Tunnel column (the pfSense description, or the interface name when there is none).
+
 ## 1.1.3 - 2026-11-07
 
 ### Fixed
