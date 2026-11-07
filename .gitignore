@@ -1,0 +1,7 @@
+# Local test fixtures and editor/OS noise
+test/tmp/
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store
