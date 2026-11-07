@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.1.2 - 2026-11-07
+
+### Changed
+- `widget/wg_stream_monitor.widget.php` (VERSION 1.1.2): the confirmation rule now applies in both directions. A peer is declared streaming only after 3 checks in a row above the threshold (shown as "active 1 of 3", etc. while counting), and stops being declared streaming only after 3 checks in a row below it. The setting "Checks before streaming ends" is renamed "Checks to confirm streaming" (`confirm_checks`), so settings saved under the old name go back to the default of 3.
+
 ## 1.1.1 - 2026-11-07
 
 ### Changed

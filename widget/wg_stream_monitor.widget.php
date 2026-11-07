@@ -7,13 +7,13 @@
  * Settings are changed with the wrench icon on the widget and saved in pfSense.
  *
  * Install: copy to /usr/local/www/widgets/widgets/wg_stream_monitor.widget.php
- * VERSION="1.1.1"
+ * VERSION="1.1.2"
  */
 require_once("guiconfig.inc");
 
 // ---- Fixed settings ----------------------------------------------------------
 $checker    = "/usr/local/bin/wg-stream-check.sh";
-// Remembers which peers were streaming between checks (for the end-of-stream failsafe).
+// Remembers each peer's streaming state between checks (for the failsafe).
 $state_file = "/var/run/wg_stream_monitor.state";
 
 // Defaults, used until you save different values with the wrench icon.
@@ -21,7 +21,7 @@ $wg_defaults = array(
     'sample_seconds'   => 3,    // time between the two counter samples (1-30)
     'threshold_kbps'   => 100,  // rx+tx rate at/above which a peer is "streaming" (1-1000000)
     'stale_seconds'    => 180,  // handshake older than this = offline (10-3600)
-    'end_after_checks' => 3,    // checks below the threshold before streaming is declared over (1-10)
+    'confirm_checks'   => 3,    // checks in a row needed to declare streaming started or ended (1-10)
     'watch_peers'      => '',   // optional: comma-separated public key prefixes or allowed IPs
 );
 // ----------------------------------------------------------------------------
@@ -55,7 +55,7 @@ function wg_clean_settings($raw, $defaults) {
         'sample_seconds'   => wg_int(isset($raw['sample_seconds']) ? $raw['sample_seconds'] : null, 1, 30, $defaults['sample_seconds']),
         'threshold_kbps'   => wg_int(isset($raw['threshold_kbps']) ? $raw['threshold_kbps'] : null, 1, 1000000, $defaults['threshold_kbps']),
         'stale_seconds'    => wg_int(isset($raw['stale_seconds']) ? $raw['stale_seconds'] : null, 10, 3600, $defaults['stale_seconds']),
-        'end_after_checks' => wg_int(isset($raw['end_after_checks']) ? $raw['end_after_checks'] : null, 1, 10, $defaults['end_after_checks']),
+        'confirm_checks'   => wg_int(isset($raw['confirm_checks']) ? $raw['confirm_checks'] : null, 1, 10, $defaults['confirm_checks']),
         'watch_peers'      => substr(preg_replace('/[^A-Za-z0-9+\/=_.:, -]/', '', $watch), 0, 500),
     );
 }
@@ -103,10 +103,14 @@ function wg_fetch_peers($checker, $s) {
     return is_array($peers) ? $peers : null;
 }
 
-// Failsafe: a peer that was streaming stays "streaming" until it has been below the
-// threshold (not streaming) for end_after_checks checks in a row. The state is kept in a
-// file between polls. Each poll is one check.
-function wg_apply_streaming_memory($peers, $end_after, $state_file) {
+// Failsafe, applied in both directions. A peer changes its declared state only after the
+// raw check (above or below the threshold) disagrees with the declared state for
+// $confirm checks in a row:
+//   - not streaming -> streaming after $confirm checks at or above the threshold
+//   - streaming -> not streaming after $confirm checks below the threshold
+// While a change is pending, the row shows the count ("active 2 of 3" or "quiet 2 of 3").
+// The state is kept in a file between polls. Each poll is one check.
+function wg_apply_streaming_memory($peers, $confirm, $state_file) {
     $old = json_decode((string)@file_get_contents($state_file), true);
     if (!is_array($old)) {
         $old = array();
@@ -117,23 +121,32 @@ function wg_apply_streaming_memory($peers, $end_after, $state_file) {
             continue;
         }
         $key = $p['interface'] . '|' . $p['peer'];
-        $was = isset($old[$key]) && is_array($old[$key]) ? $old[$key] : array('streaming' => false, 'quiet' => 0);
+        $was = isset($old[$key]) && is_array($old[$key]) ? $old[$key] : array();
+        $declared = !empty($was['streaming']);
+        $pending = isset($was['count']) ? (int)$was['count'] : 0;
+        $raw = ($p['status'] === 'streaming');
 
-        if ($p['status'] === 'streaming') {
-            $now = array('streaming' => true, 'quiet' => 0);
-        } elseif (!empty($was['streaming'])) {
-            $quiet = (int)$was['quiet'] + 1;
-            $now = ($quiet >= $end_after)
-                ? array('streaming' => false, 'quiet' => 0)
-                : array('streaming' => true, 'quiet' => $quiet);
+        if ($raw === $declared) {
+            // Raw state agrees with the declared state: nothing is pending
+            $now = array('streaming' => $declared, 'count' => 0);
         } else {
-            $now = array('streaming' => false, 'quiet' => 0);
+            $pending++;
+            $now = ($pending >= $confirm)
+                ? array('streaming' => $raw, 'count' => 0)
+                : array('streaming' => $declared, 'count' => $pending);
         }
         $new[$key] = $now;
 
-        if ($now['streaming'] && $p['status'] !== 'streaming') {
+        if ($now['streaming'] && !$raw) {
+            // Still declared streaming, but this check is below the threshold
             $peers[$i]['status'] = 'streaming';
-            $peers[$i]['quiet'] = $now['quiet'];
+            $peers[$i]['pending'] = 'quiet';
+            $peers[$i]['count'] = $now['count'];
+        } elseif (!$now['streaming'] && $raw) {
+            // Not declared streaming yet, but this check is above the threshold
+            $peers[$i]['status'] = 'connected-idle';
+            $peers[$i]['pending'] = 'active';
+            $peers[$i]['count'] = $now['count'];
         }
     }
     @file_put_contents($state_file, json_encode($new), LOCK_EX);
@@ -183,8 +196,9 @@ function wg_render_table($peers, $s) {
     foreach ($rows as $p) {
         $label = isset($names[$p['interface']]) ? $names[$p['interface']] : $p['interface'];
         $status = wg_status_badge($p['status']);
-        if (!empty($p['quiet'])) {
-            $status .= ' <small class="text-muted">quiet ' . (int)$p['quiet'] . ' of ' . (int)$s['end_after_checks'] . '</small>';
+        if (!empty($p['pending'])) {
+            $status .= ' <small class="text-muted">' . htmlspecialchars($p['pending']) . ' '
+                . (int)$p['count'] . ' of ' . (int)$s['confirm_checks'] . '</small>';
         }
         $html .= '<tr>'
               . '<td title="' . htmlspecialchars($p['peer']) . '">' . htmlspecialchars($label) . '</td>'
@@ -212,8 +226,8 @@ function wg_settings_form($wkey, $s) {
         . '<div class="panel-body">'
         . $field('threshold_kbps', 'Streaming threshold (kbps)', $s['threshold_kbps'], 1, 1000000,
                  'Combined rx+tx rate at or above this counts as streaming.')
-        . $field('end_after_checks', 'Checks before streaming ends', $s['end_after_checks'], 1, 10,
-                 'A streaming peer is shown as streaming until it is below the threshold this many checks in a row.')
+        . $field('confirm_checks', 'Checks to confirm streaming', $s['confirm_checks'], 1, 10,
+                 'A peer is declared streaming only after this many checks in a row above the threshold, and stops being declared streaming only after this many checks in a row below it.')
         . $field('sample_seconds', 'Sample time (seconds)', $s['sample_seconds'], 1, 30,
                  'Time between the two counter samples. Each refresh blocks for this long.')
         . $field('stale_seconds', 'Offline after (seconds)', $s['stale_seconds'], 10, 3600,
@@ -232,7 +246,7 @@ function wg_settings_form($wkey, $s) {
 if (isset($_REQUEST['ajax'])) {
     $peers = wg_fetch_peers($checker, $settings);
     if (is_array($peers) && !isset($peers['error'])) {
-        $peers = wg_apply_streaming_memory($peers, $settings['end_after_checks'], $state_file);
+        $peers = wg_apply_streaming_memory($peers, $settings['confirm_checks'], $state_file);
     }
     echo wg_render_table($peers, $settings);
     exit;
