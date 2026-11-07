@@ -6,7 +6,7 @@
 # Installs, updates, checks and removes the checker and the dashboard widget.
 # Widget settings (threshold, sample time, watch list) are kept across updates.
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 REPO_RAW=${WG_REPO_RAW:-https://raw.githubusercontent.com/simonleroux/pfsense_widget/main}
 REPO_TARBALL=${WG_TARBALL_URL:-https://github.com/simonleroux/pfsense_widget/archive/refs/heads/main.tar.gz}
@@ -124,42 +124,16 @@ install_checker() {
     fi
 }
 
-# Copies the settings lines (sample time, threshold, stale time, watch list) from the
-# installed widget into the new copy, so updates keep your tuning.
-carry_widget_settings() {
-    # $1 installed widget, $2 new widget file (rewritten in place)
-    cat > "$TMP_CARRY_AWK" <<'AWK'
-function key_of(line,   k) { k = line; sub(/[ \t]*=.*/, "", k); sub(/^\$/, "", k); return k }
-function is_setting(k) { return (k == "sample_seconds" || k == "threshold_kbps" || k == "stale_seconds" || k == "watch_peers") }
-FNR == NR {
-    if ($0 ~ /^\$[a-z_]+[ \t]*=/) { k = key_of($0); if (is_setting(k)) saved[k] = $0 }
-    next
-}
-{
-    if ($0 ~ /^\$[a-z_]+[ \t]*=/) {
-        k = key_of($0)
-        if (is_setting(k) && (k in saved)) { print saved[k]; next }
-    }
-    print
-}
-AWK
-    awk -f "$TMP_CARRY_AWK" "$1" "$2" > "$2.carried" && mv "$2.carried" "$2"
-}
-
 install_widget() {
     [ -f "$WIDGET_SRC" ] || { warn "missing $WIDGET_SRC"; return 1; }
     if [ ! -d "$WIDGET_DIR" ]; then
         warn "$WIDGET_DIR not found. Is this a pfSense firewall with the web GUI installed?"
         return 1
     fi
-    TMP_CARRY_AWK=$(mktemp) || return 1
-    cp "$WIDGET_SRC" "$WIDGET.new" || { rm -f "$TMP_CARRY_AWK"; return 1; }
+    cp "$WIDGET_SRC" "$WIDGET.new" || return 1
     if [ -f "$WIDGET" ]; then
         cp "$WIDGET" "$WIDGET.bak" && say "  Backed up existing widget to $WIDGET.bak"
-        carry_widget_settings "$WIDGET" "$WIDGET.new"
-        say "  Kept your widget settings"
     fi
-    rm -f "$TMP_CARRY_AWK"
     if mv "$WIDGET.new" "$WIDGET" && chmod 644 "$WIDGET"; then
         ok "widget installed at $WIDGET"
     else

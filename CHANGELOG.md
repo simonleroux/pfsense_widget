@@ -2,6 +2,15 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.1.0 - 2026-11-07
+
+### Added
+- `widget/wg_stream_monitor.widget.php` (VERSION 1.1.0): settings are changed with the wrench icon on the widget and saved in pfSense (threshold, sample time, offline time, watch list, and checks before streaming ends). The updater no longer copies settings between files, since they are kept in pfSense.
+- `widget/wg_stream_monitor.widget.php` (VERSION 1.1.0): failsafe. A peer that was streaming stays "streaming" until it is below the threshold for the configured number of checks in a row (default 3). The row shows "quiet N of 3" while it is counting. Each widget refresh counts as one check, and the state is kept in `/var/run/wg_stream_monitor.state`.
+
+### Changed
+- `install.sh` (VERSION 1.1.0): settings are no longer carried over from the old widget file on update. Values set with the old file are reset to the defaults once, so set them again with the wrench icon.
+
 ## 1.0.0 - 2026-11-07
 
 ### Added
