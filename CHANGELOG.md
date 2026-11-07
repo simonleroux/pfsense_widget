@@ -2,6 +2,14 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.2.0 - 2026-11-07
+
+### Added
+- `widget/wireguard_streaming.widget.php` (VERSION 1.2.0): a fork of the pfSense WireGuard dashboard widget (Apache-2.0, copyright notices kept). It keeps the stock tunnel table and adds a Streaming column ("N of M" peers streaming per tunnel), using the same checker and confirmation failsafe. Its settings are in the wrench panel, next to the stock refresh and activity settings.
+- `widget/include/wireguard_streaming.inc`: dashboard title "WireGuard Streaming".
+
+Not yet installed by `install.sh`. Not tested on pfSense: the fork depends on the WireGuard package's helper functions.
+
 ## 1.1.4 - 2026-11-07
 
 ### Changed
