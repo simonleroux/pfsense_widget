@@ -2,6 +2,16 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.5.0 - 2026-11-07
+
+### Changed
+- `widget/wireguard_streaming.widget.php` (VERSION 1.5.0): the Streaming widget keeps one row per tunnel with its peers summed, and now has a fixed height with a scrollbar so it matches the Peers widget.
+- `widget/wireguard_streaming_peers.widget.php` (VERSION 1.5.0), new: the WireGuard Peers widget, one row per peer (tunnel, peer, endpoint, rate, status with confirmation progress, allowed IPs). It goes in the other dashboard column, at the same fixed height.
+- `widget/lib/wireguard_streaming_core.inc` (VERSION 1.5.0), new: the code both widgets share. It is installed next to the widgets, not in the title folder, so pfSense does not load it as a title file.
+- The checker runs once per refresh round. A second widget that refreshes within 5 seconds reuses the result, so the failsafe counts each round once.
+- `install.sh` (VERSION 1.5.0): installs the WireGuard Peers widget and the shared code as well.
+- Both widgets' titles come from `widget/include/`. Widget settings are set in the WireGuard Streaming widget and apply to both.
+
 ## 1.4.0 - 2026-11-07
 
 ### Changed

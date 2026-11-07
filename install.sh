@@ -6,7 +6,7 @@
 # Installs, updates, checks and removes the checker and the dashboard widget.
 # Widget settings (threshold, sample time, watch list) are kept across updates.
 
-VERSION="1.2.0"
+VERSION="1.5.0"
 
 REPO_RAW=${WG_REPO_RAW:-https://raw.githubusercontent.com/simonleroux/pfsense_widget/main}
 REPO_TARBALL=${WG_TARBALL_URL:-https://github.com/simonleroux/pfsense_widget/archive/refs/heads/main.tar.gz}
@@ -15,6 +15,9 @@ SRC_DIR=$(cd "$(dirname "$0")" && pwd)
 CHECKER_SRC="$SRC_DIR/scripts/wg-stream-check.sh"
 WIDGET_SRC="$SRC_DIR/widget/wireguard_streaming.widget.php"
 INCLUDE_SRC="$SRC_DIR/widget/include/wireguard_streaming.inc"
+CORE_SRC="$SRC_DIR/widget/lib/wireguard_streaming_core.inc"
+PEERS_SRC="$SRC_DIR/widget/wireguard_streaming_peers.widget.php"
+PEERS_INCLUDE_SRC="$SRC_DIR/widget/include/wireguard_streaming_peers.inc"
 
 BIN_DIR=${WG_STREAM_BIN_DIR:-/usr/local/bin}
 WIDGET_DIR=${WG_STREAM_WIDGET_DIR:-/usr/local/www/widgets/widgets}
@@ -24,6 +27,9 @@ WIDGET="$WIDGET_DIR/wireguard_streaming.widget.php"
 OLD_WIDGET="$WIDGET_DIR/wg_stream_monitor.widget.php"
 OLD_INCLUDE="$INCLUDE_DIR/wg_stream_monitor.inc"
 INCLUDE="$INCLUDE_DIR/wireguard_streaming.inc"
+CORE="$WIDGET_DIR/wireguard_streaming_core.inc"
+PEERS="$WIDGET_DIR/wireguard_streaming_peers.widget.php"
+PEERS_INCLUDE="$INCLUDE_DIR/wireguard_streaming_peers.inc"
 
 say()  { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
@@ -109,6 +115,9 @@ check_sources() {
     [ -f "$CHECKER_SRC" ] || { warn "missing $CHECKER_SRC"; missing=1; }
     [ -f "$WIDGET_SRC" ]  || { warn "missing $WIDGET_SRC"; missing=1; }
     [ -f "$INCLUDE_SRC" ] || { warn "missing $INCLUDE_SRC"; missing=1; }
+    [ -f "$CORE_SRC" ] || { warn "missing $CORE_SRC"; missing=1; }
+    [ -f "$PEERS_SRC" ] || { warn "missing $PEERS_SRC"; missing=1; }
+    [ -f "$PEERS_INCLUDE_SRC" ] || { warn "missing $PEERS_INCLUDE_SRC"; missing=1; }
     return $missing
 }
 
@@ -153,6 +162,17 @@ install_widget() {
         ok "dashboard title installed at $INCLUDE"
     else
         warn "failed to install $INCLUDE (the dashboard title will be missing)"
+        return 1
+    fi
+
+    # The Peers widget and the code both widgets share (installed next to the Streaming widget)
+    if [ -f "$CORE_SRC" ] && [ -f "$PEERS_SRC" ] && [ -d "$INCLUDE_DIR" ] \
+        && cp "$CORE_SRC" "$CORE" && chmod 644 "$CORE" \
+        && cp "$PEERS_SRC" "$PEERS" && chmod 644 "$PEERS" \
+        && cp "$PEERS_INCLUDE_SRC" "$PEERS_INCLUDE" && chmod 644 "$PEERS_INCLUDE"; then
+        ok "WireGuard Peers widget installed at $PEERS"
+    else
+        warn "failed to install the WireGuard Peers widget"
         return 1
     fi
 }
@@ -253,8 +273,8 @@ uninstall() {
         say "Cancelled."
         return 0
     fi
-    rm -f "$CHECKER" "$WIDGET" "$INCLUDE" "$OLD_WIDGET" "$OLD_INCLUDE"
-    ok "removed $CHECKER, $WIDGET and $INCLUDE (backups, if any, were kept)"
+    rm -f "$CHECKER" "$WIDGET" "$INCLUDE" "$OLD_WIDGET" "$OLD_INCLUDE" "$CORE" "$PEERS" "$PEERS_INCLUDE"
+    ok "removed $CHECKER, $WIDGET, $PEERS, $CORE and their title files (backups, if any, were kept)"
     say "Remove the widget from the dashboard manually if it is still added."
 }
 
