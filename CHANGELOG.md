@@ -2,6 +2,12 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.5.7 - 2026-11-07
+
+### Changed
+- `widget/lib/wireguard_streaming_core.inc` (VERSION 1.5.6): the default streaming threshold is 1000 kbps (1 Mbps), up from 100 kbps. 100 kbps was too low to tell a TV show from background traffic. The range is still 1 to 1000000 kbps.
+- `README.md`: updated the default.
+
 ## 1.5.6 - 2026-11-07
 
 ### Fixed

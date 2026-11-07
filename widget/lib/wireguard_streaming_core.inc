@@ -3,7 +3,7 @@
  * wireguard_streaming_core.inc - shared code for the WireGuard Streaming and
  * WireGuard Peers widgets. Installed next to the widgets in /usr/local/www/widgets/widgets/
  * (not in widgets/include/, which pfSense loads as title files).
- * VERSION="1.5.5"
+ * VERSION="1.5.6"
  */
 
 define('WGS_SETTINGS_KEY', 'wireguard_streaming-0');   // both widgets share these settings
@@ -14,7 +14,7 @@ define('WGS_CACHE_SECONDS', 5);  // a second widget within this time reuses the 
 
 function wgs_defaults() {
     return array(
-        'threshold_kbps' => 100,  // rx+tx rate at/above which a peer is "streaming" (1-1000000)
+        'threshold_kbps' => 1000, // rx+tx rate at/above which a peer is "streaming" (1-1000000)
         'confirm_checks' => 3,    // checks in a row needed to declare streaming started or ended (1-10)
         'sample_seconds' => 3,    // time between the two counter samples (1-30)
         'stale_seconds'  => 180,  // handshake older than this = offline (10-3600)

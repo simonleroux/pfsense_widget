@@ -18,7 +18,7 @@ WireGuard does not report "active streams", so the check is rate-based:
 | `offline`         | Last handshake is older than `stale_seconds`                   |
 | `never-connected` | The peer has never completed a handshake                       |
 
-Defaults: 3 s sample, 100 kbps threshold, 180 s stale. Video is usually well above
+Defaults: 3 s sample, 1000 kbps (1 Mbps) threshold, 180 s stale. Most video is above
 1 Mbps, so you can raise the threshold to reduce false positives from chat or
 background sync. Keepalives are only a few bytes per second and stay under the threshold.
 
