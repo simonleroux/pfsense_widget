@@ -16,7 +16,7 @@
  * Install: copy to /usr/local/www/widgets/widgets/wireguard_streaming.widget.php
  *          with widget/lib/wireguard_streaming_core.inc in the same folder, and
  *          widget/include/wireguard_streaming.inc to /usr/local/www/widgets/include/
- * VERSION="1.5.1"
+ * VERSION="1.5.2"
  */
 
 // pfSense includes
@@ -71,7 +71,6 @@ if (isset($_POST['ajax'])) {
 				<th><?=gettext('Tunnel')?></th>
 				<th><?=gettext('Description')?></th>
 				<th><?=gettext('Streaming')?></th>
-				<th><?=gettext('Rate')?></th>
 				<th><?=gettext('RX')?></th>
 				<th><?=gettext('TX')?></th>
 			</thead>

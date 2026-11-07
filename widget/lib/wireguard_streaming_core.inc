@@ -3,7 +3,7 @@
  * wireguard_streaming_core.inc - shared code for the WireGuard Streaming and
  * WireGuard Peers widgets. Installed next to the widgets in /usr/local/www/widgets/widgets/
  * (not in widgets/include/, which pfSense loads as title files).
- * VERSION="1.5.2"
+ * VERSION="1.5.3"
  */
 
 define('WGS_SETTINGS_KEY', 'wireguard_streaming-0');   // both widgets share these settings
@@ -180,36 +180,31 @@ function wgs_traffic_cells($device) {
 // Table body for WireGuard Streaming: one row per tunnel, with its peers summed
 function wgs_tunnel_rows($peers) {
     if (!wgs_tunnels_configured()) {
-        return wgs_message_row(6, gettext('No WireGuard tunnels have been configured.'));
+        return wgs_message_row(5, gettext('No WireGuard tunnels have been configured.'));
     }
     $a_devices = wg_get_status();
     if (empty($a_devices)) {
-        return wgs_message_row(6, gettext('The WireGuard service is not running.'));
+        return wgs_message_row(5, gettext('The WireGuard service is not running.'));
     }
 
     $html = '';
     foreach ($a_devices as $device_name => $device) {
         $mine = wgs_peers_of($peers, $device_name);
         $streaming = 0;
-        $rate = 0.0;
         foreach ($mine as $p) {
             if ($p['status'] === 'streaming') {
                 $streaming++;
             }
-            $rate += $p['kbps'];
         }
 
         if ($peers === null) {
             $streaming_cell = '<small class="text-muted">' . htmlspecialchars(gettext('checker failed')) . '</small>';
-            $rate_cell = '';
         } else {
             $streaming_cell = htmlspecialchars($streaming . ' ' . gettext('of') . ' ' . count($mine) . ' ' . gettext('peers'));
-            $rate_cell = htmlspecialchars(number_format($rate, 1)) . ' kbps';
         }
 
         $html .= '<tr>' . wgs_tunnel_cells($device_name, $device)
             . '<td>' . $streaming_cell . '</td>'
-            . '<td>' . $rate_cell . '</td>'
             . wgs_traffic_cells($device)
             . '</tr>';
     }
