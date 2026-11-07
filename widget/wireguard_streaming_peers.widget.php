@@ -8,7 +8,7 @@
  * Install: copy to /usr/local/www/widgets/widgets/wireguard_streaming_peers.widget.php
  *          with widget/lib/wireguard_streaming_core.inc in the same folder, and
  *          widget/include/wireguard_streaming_peers.inc to /usr/local/www/widgets/include/
- * VERSION="1.5.2"
+ * VERSION="1.5.3"
  */
 
 // pfSense includes
@@ -54,7 +54,6 @@ if (isset($_POST['ajax'])) {
 				<th><?=gettext('Endpoint')?></th>
 				<th><?=gettext('Rate')?></th>
 				<th><?=gettext('Status')?></th>
-				<th><?=gettext('Allowed IPs')?></th>
 			</thead>
 			<tbody id="<?=htmlspecialchars($widgetkey_local)?>">
 				<?=wgs_peer_rows(wgs_round_peers($settings), $settings['confirm_checks'])?>

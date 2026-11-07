@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.5.4 - 2026-11-07
+
+### Changed
+- `widget/wireguard_streaming_peers.widget.php` (VERSION 1.5.3) and `widget/lib/wireguard_streaming_core.inc` (VERSION 1.5.4): the Allowed IPs column is removed from the WireGuard Peers widget. Its columns are Tunnel, Endpoint, Rate, Status.
+
 ## 1.5.3 - 2026-11-07
 
 ### Changed

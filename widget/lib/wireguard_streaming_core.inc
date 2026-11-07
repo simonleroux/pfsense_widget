@@ -3,7 +3,7 @@
  * wireguard_streaming_core.inc - shared code for the WireGuard Streaming and
  * WireGuard Peers widgets. Installed next to the widgets in /usr/local/www/widgets/widgets/
  * (not in widgets/include/, which pfSense loads as title files).
- * VERSION="1.5.3"
+ * VERSION="1.5.4"
  */
 
 define('WGS_SETTINGS_KEY', 'wireguard_streaming-0');   // both widgets share these settings
@@ -214,14 +214,14 @@ function wgs_tunnel_rows($peers) {
 // Table body for WireGuard Peers: one row per peer
 function wgs_peer_rows($peers, $confirm) {
     if (!wgs_tunnels_configured()) {
-        return wgs_message_row(5, gettext('No WireGuard tunnels have been configured.'));
+        return wgs_message_row(4, gettext('No WireGuard tunnels have been configured.'));
     }
     $a_devices = wg_get_status();
     if (empty($a_devices)) {
-        return wgs_message_row(5, gettext('The WireGuard service is not running.'));
+        return wgs_message_row(4, gettext('The WireGuard service is not running.'));
     }
     if ($peers === null) {
-        return wgs_message_row(5, gettext('The streaming checker failed.'));
+        return wgs_message_row(4, gettext('The streaming checker failed.'));
     }
 
     $html = '';
@@ -237,12 +237,11 @@ function wgs_peer_rows($peers, $confirm) {
                 . '<td>' . htmlspecialchars($p['endpoint']) . '</td>'
                 . '<td>' . htmlspecialchars(number_format($p['kbps'], 1)) . ' kbps</td>'
                 . '<td>' . wgs_status_badge($p['status']) . $pending . '</td>'
-                . '<td><small>' . htmlspecialchars($p['allowed_ips']) . '</small></td>'
                 . '</tr>';
         }
     }
     if ($html === '') {
-        return wgs_message_row(5, gettext('No peers reported by the checker.'));
+        return wgs_message_row(4, gettext('No peers reported by the checker.'));
     }
     return $html;
 }
