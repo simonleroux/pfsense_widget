@@ -3,7 +3,7 @@
  * wireguard_streaming_core.inc - shared code for the WireGuard Streaming and
  * WireGuard Peers widgets. Installed next to the widgets in /usr/local/www/widgets/widgets/
  * (not in widgets/include/, which pfSense loads as title files).
- * VERSION="1.5.4"
+ * VERSION="1.5.5"
  */
 
 define('WGS_SETTINGS_KEY', 'wireguard_streaming-0');   // both widgets share these settings
@@ -37,7 +37,7 @@ function wgs_clean_settings($raw, $wgg) {
     $raw = is_array($raw) ? $raw : array();
     $watch = isset($raw['watch_peers']) ? (string)$raw['watch_peers'] : '';
     return array(
-        'refresh_interval' => wgs_int(isset($raw['refresh_interval']) ? $raw['refresh_interval'] : null, 0, 10, $wgg['default_widget_refresh_interval']),
+        'refresh_interval' => wgs_int(isset($raw['refresh_interval']) ? $raw['refresh_interval'] : null, 0, 10, 10),
         'threshold_kbps'   => wgs_int(isset($raw['threshold_kbps']) ? $raw['threshold_kbps'] : null, 1, 1000000, $d['threshold_kbps']),
         'confirm_checks'   => wgs_int(isset($raw['confirm_checks']) ? $raw['confirm_checks'] : null, 1, 10, $d['confirm_checks']),
         'sample_seconds'   => wgs_int(isset($raw['sample_seconds']) ? $raw['sample_seconds'] : null, 1, 30, $d['sample_seconds']),

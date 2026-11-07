@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.5.6 - 2026-11-07
+
+### Fixed
+- `widget/lib/wireguard_streaming_core.inc` (VERSION 1.5.5): the refresh interval default is 10, and saving the refresh interval no longer fails with "must be below 10".
+
 ## 1.5.5 - 2026-11-07
 
 ### Changed
