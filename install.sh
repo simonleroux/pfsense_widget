@@ -143,12 +143,9 @@ install_widget() {
         return 1
     fi
 
-    # Retire the standalone widget this one replaces, so two widgets do not show
-    if [ -f "$OLD_WIDGET" ]; then
-        mv "$OLD_WIDGET" "$OLD_WIDGET.bak" && say "  Retired the old standalone widget (kept as $OLD_WIDGET.bak)"
-    fi
-    if [ -f "$OLD_INCLUDE" ]; then
-        mv "$OLD_INCLUDE" "$OLD_INCLUDE.bak" && say "  Retired the old standalone title file (kept as $OLD_INCLUDE.bak)"
+    # Remove the standalone widget this one replaces (our own files, not the stock widget)
+    if [ -f "$OLD_WIDGET" ] || [ -f "$OLD_INCLUDE" ]; then
+        rm -f "$OLD_WIDGET" "$OLD_INCLUDE" && say "  Removed the old standalone widget"
     fi
 
     # The include file sets the dashboard title (pfSense reads it from widgets/include/)
