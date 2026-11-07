@@ -7,7 +7,7 @@
  * Settings are changed with the wrench icon on the widget and saved in pfSense.
  *
  * Install: copy to /usr/local/www/widgets/widgets/wg_stream_monitor.widget.php
- * VERSION="1.1.0"
+ * VERSION="1.1.1"
  */
 require_once("guiconfig.inc");
 

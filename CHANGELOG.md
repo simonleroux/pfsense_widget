@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.1.1 - 2026-11-07
+
+### Changed
+- `widget/wg_stream_monitor.widget.php` (VERSION 1.1.1): layout fix. Removed an extra closing div that pushed the other dashboard widgets out of place.
+
 ## 1.1.0 - 2026-11-07
 
 ### Added
