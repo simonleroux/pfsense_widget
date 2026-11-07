@@ -6,22 +6,24 @@
 # Installs, updates, checks and removes the checker and the dashboard widget.
 # Widget settings (threshold, sample time, watch list) are kept across updates.
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 
 REPO_RAW=${WG_REPO_RAW:-https://raw.githubusercontent.com/simonleroux/pfsense_widget/main}
 REPO_TARBALL=${WG_TARBALL_URL:-https://github.com/simonleroux/pfsense_widget/archive/refs/heads/main.tar.gz}
 
 SRC_DIR=$(cd "$(dirname "$0")" && pwd)
 CHECKER_SRC="$SRC_DIR/scripts/wg-stream-check.sh"
-WIDGET_SRC="$SRC_DIR/widget/wg_stream_monitor.widget.php"
-INCLUDE_SRC="$SRC_DIR/widget/include/wg_stream_monitor.inc"
+WIDGET_SRC="$SRC_DIR/widget/wireguard_streaming.widget.php"
+INCLUDE_SRC="$SRC_DIR/widget/include/wireguard_streaming.inc"
 
 BIN_DIR=${WG_STREAM_BIN_DIR:-/usr/local/bin}
 WIDGET_DIR=${WG_STREAM_WIDGET_DIR:-/usr/local/www/widgets/widgets}
 INCLUDE_DIR=${WG_STREAM_INCLUDE_DIR:-/usr/local/www/widgets/include}
 CHECKER="$BIN_DIR/wg-stream-check.sh"
-WIDGET="$WIDGET_DIR/wg_stream_monitor.widget.php"
-INCLUDE="$INCLUDE_DIR/wg_stream_monitor.inc"
+WIDGET="$WIDGET_DIR/wireguard_streaming.widget.php"
+OLD_WIDGET="$WIDGET_DIR/wg_stream_monitor.widget.php"
+OLD_INCLUDE="$INCLUDE_DIR/wg_stream_monitor.inc"
+INCLUDE="$INCLUDE_DIR/wireguard_streaming.inc"
 
 say()  { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
@@ -141,11 +143,19 @@ install_widget() {
         return 1
     fi
 
+    # Retire the standalone widget this one replaces, so two widgets do not show
+    if [ -f "$OLD_WIDGET" ]; then
+        mv "$OLD_WIDGET" "$OLD_WIDGET.bak" && say "  Retired the old standalone widget (kept as $OLD_WIDGET.bak)"
+    fi
+    if [ -f "$OLD_INCLUDE" ]; then
+        mv "$OLD_INCLUDE" "$OLD_INCLUDE.bak" && say "  Retired the old standalone title file (kept as $OLD_INCLUDE.bak)"
+    fi
+
     # The include file sets the dashboard title (pfSense reads it from widgets/include/)
     if [ -d "$INCLUDE_DIR" ] && cp "$INCLUDE_SRC" "$INCLUDE" && chmod 644 "$INCLUDE"; then
         ok "dashboard title installed at $INCLUDE"
     else
-        warn "failed to install $INCLUDE (the dashboard title will be 'Wg Stream Monitor')"
+        warn "failed to install $INCLUDE (the dashboard title will be missing)"
         return 1
     fi
 }
@@ -206,7 +216,7 @@ download_project() {
         rm -rf "$TMP"
         return 1
     }
-    if [ ! -f "$TMP/new/install.sh" ] || [ ! -f "$TMP/new/scripts/wg-stream-check.sh" ] || [ ! -f "$TMP/new/widget/wg_stream_monitor.widget.php" ]; then
+    if [ ! -f "$TMP/new/install.sh" ] || [ ! -f "$TMP/new/scripts/wg-stream-check.sh" ] || [ ! -f "$TMP/new/widget/wireguard_streaming.widget.php" ]; then
         warn "the download is missing expected files; nothing was changed"
         rm -rf "$TMP"
         return 1
@@ -246,7 +256,7 @@ uninstall() {
         say "Cancelled."
         return 0
     fi
-    rm -f "$CHECKER" "$WIDGET" "$INCLUDE"
+    rm -f "$CHECKER" "$WIDGET" "$INCLUDE" "$OLD_WIDGET" "$OLD_INCLUDE"
     ok "removed $CHECKER, $WIDGET and $INCLUDE (backups, if any, were kept)"
     say "Remove the widget from the dashboard manually if it is still added."
 }
@@ -267,7 +277,7 @@ show_menu() {
     checker_installed=$(installed_version "$CHECKER")
     widget_installed=$(installed_version "$WIDGET")
     checker_server=$(server_version scripts/wg-stream-check.sh)
-    widget_server=$(server_version widget/wg_stream_monitor.widget.php)
+    widget_server=$(server_version widget/wireguard_streaming.widget.php)
     say ""
     say "====================================="
     say "  WireGuard Stream Monitor (pfSense)"
