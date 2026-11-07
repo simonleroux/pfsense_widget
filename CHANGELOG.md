@@ -2,6 +2,12 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.5.8 - 2026-11-07
+
+### Changed
+- `widget/lib/wireguard_streaming_core.inc` (VERSION 1.5.7): the default streaming threshold is 3000 kbps (3 Mbps), for 1080p. 1080p is usually 3 to 8 Mbps. Some services drop below 3 Mbps on a weak connection, and those will show as idle. Lower the threshold in the wrench panel if that happens.
+- `README.md`: updated the default.
+
 ## 1.5.7 - 2026-11-07
 
 ### Changed
