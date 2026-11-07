@@ -51,6 +51,26 @@ function wg_fetch_peers($checker, $sample, $threshold, $stale) {
     return is_array($peers) ? $peers : null;
 }
 
+// Map WireGuard interface names (e.g. tun_wg0) to the tunnel descriptions set in
+// pfSense (VPN > WireGuard > Tunnels). Falls back to the interface name when unset.
+function wg_tunnel_names() {
+    global $config;
+    $names = array();
+    $items = isset($config['wireguard']['tunnels']['item']) ? $config['wireguard']['tunnels']['item'] : array();
+    if (!is_array($items)) {
+        return $names;
+    }
+    if (isset($items['name'])) {
+        $items = array($items); // a single tunnel is stored without a list wrapper
+    }
+    foreach ($items as $t) {
+        if (!empty($t['name']) && !empty($t['descr'])) {
+            $names[$t['name']] = $t['descr'];
+        }
+    }
+    return $names;
+}
+
 function wg_render_table($peers, $watch_peers) {
     if ($peers === null) {
         return '<p class="text-danger">Could not read WireGuard state.</p>';
@@ -66,16 +86,18 @@ function wg_render_table($peers, $watch_peers) {
         return '<p>No matching WireGuard peers.</p>';
     }
 
+    $names = wg_tunnel_names();
     $streaming = 0;
     $html = '<table class="table table-striped table-condensed"><thead><tr>'
-          . '<th>Peer</th><th>Endpoint</th><th>Rate</th><th>Status</th>'
+          . '<th>Tunnel</th><th>Endpoint</th><th>Rate</th><th>Status</th>'
           . '</tr></thead><tbody>';
     foreach ($rows as $p) {
         if ($p['status'] === 'streaming') {
             $streaming++;
         }
+        $label = isset($names[$p['interface']]) ? $names[$p['interface']] : $p['interface'];
         $html .= '<tr>'
-              . '<td title="' . htmlspecialchars($p['peer']) . '">' . htmlspecialchars(substr($p['peer'], 0, 10)) . '...</td>'
+              . '<td title="' . htmlspecialchars($p['peer']) . '">' . htmlspecialchars($label) . '</td>'
               . '<td>' . htmlspecialchars($p['endpoint']) . '</td>'
               . '<td>' . number_format($p['kbps'], 1) . ' kbps</td>'
               . '<td>' . wg_status_badge($p['status']) . '</td>'
