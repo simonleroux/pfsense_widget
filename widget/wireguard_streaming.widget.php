@@ -17,7 +17,7 @@
  * Install: copy to /usr/local/www/widgets/widgets/wireguard_streaming.widget.php
  *          and widget/include/wireguard_streaming.inc to /usr/local/www/widgets/include/
  * Replace the stock WireGuard widget on the dashboard with this one (or keep both).
- * VERSION="1.2.0"
+ * VERSION="1.2.1"
  */
 
 // pfSense includes
@@ -99,6 +99,17 @@ if (isset($_POST['save']) && isset($_POST['widgetkey']) && wgs_valid_key($_POST[
     exit;
 }
 
+function wgs_status_badge($status) {
+    $map = array(
+        "streaming"       => array("success", "Streaming"),
+        "connected-idle"  => array("info",    "Connected (idle)"),
+        "offline"         => array("default", "Offline"),
+        "never-connected" => array("default", "Never connected"),
+    );
+    $m = isset($map[$status]) ? $map[$status] : array("default", $status);
+    return '<span class="label label-' . $m[0] . '">' . htmlspecialchars($m[1]) . '</span>';
+}
+
 // Runs the checker and returns its peers, or null if it fails. Applies the watch list.
 function wgs_checker_peers($checker, $s) {
     $cmd = escapeshellcmd($checker) . ' ' . intval($s['sample_seconds']) . ' ' . intval($s['threshold_kbps']) . ' ' . intval($s['stale_seconds']) . ' 2>/dev/null';
@@ -149,9 +160,15 @@ function wgs_apply_memory($peers, $confirm, $state_file) {
         $new[$key] = $now;
 
         if ($now['streaming'] && !$raw) {
+            // Still declared streaming, but this check is below the threshold
             $peers[$i]['status'] = 'streaming';
+            $peers[$i]['pending'] = 'quiet';
+            $peers[$i]['count'] = $now['count'];
         } elseif (!$now['streaming'] && $raw) {
+            // Not declared streaming yet, but this check is above the threshold
             $peers[$i]['status'] = 'connected-idle';
+            $peers[$i]['pending'] = 'active';
+            $peers[$i]['count'] = $now['count'];
         }
     }
     @file_put_contents($state_file, json_encode($new), LOCK_EX);
@@ -215,6 +232,28 @@ function wgs_compose_body($widgetkey, $activity_threshold, $s, $checker, $state_
             . '<td>' . htmlspecialchars(format_bytes($device['transfer_rx'])) . '</td>'
             . '<td>' . htmlspecialchars(format_bytes($device['transfer_tx'])) . '</td>'
             . '</tr>';
+
+        // Streaming details for each peer of this tunnel, from the checker
+        if ($peers !== null) {
+            foreach ($peers as $p) {
+                if ($p['interface'] !== $device_name) {
+                    continue;
+                }
+                $pending = '';
+                if (!empty($p['pending'])) {
+                    $pending = ' <small class="text-muted">' . htmlspecialchars($p['pending']) . ' '
+                        . (int)$p['count'] . ' of ' . (int)$s['confirm_checks'] . '</small>';
+                }
+                $html .= '<tr>'
+                    . '<td></td>'
+                    . '<td colspan="2" title="' . htmlspecialchars($p['peer']) . '">'
+                    . htmlspecialchars(substr($p['peer'], 0, 10)) . '... ' . htmlspecialchars($p['endpoint']) . '</td>'
+                    . '<td>' . htmlspecialchars(number_format($p['kbps'], 1)) . ' kbps</td>'
+                    . '<td>' . wgs_status_badge($p['status']) . $pending . '</td>'
+                    . '<td colspan="2"><small class="text-muted">' . htmlspecialchars($p['allowed_ips']) . '</small></td>'
+                    . '</tr>';
+            }
+        }
     }
     return $html;
 }

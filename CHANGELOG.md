@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.2.1 - 2026-11-07
+
+### Changed
+- `widget/wireguard_streaming.widget.php` (VERSION 1.2.1): the per-peer streaming details are back. Under each tunnel row, each peer shows its key prefix, endpoint, rate, status (with the "active"/"quiet N of N" progress), and allowed IPs. The stock tunnel table and the per-tunnel "Streaming" count are unchanged.
+
 ## 1.2.0 - 2026-11-07
 
 ### Added
