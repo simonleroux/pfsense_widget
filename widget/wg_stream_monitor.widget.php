@@ -7,7 +7,7 @@
  * Settings are changed with the wrench icon on the widget and saved in pfSense.
  *
  * Install: copy to /usr/local/www/widgets/widgets/wg_stream_monitor.widget.php
- * VERSION="1.1.2"
+ * VERSION="1.1.3"
  */
 require_once("guiconfig.inc");
 
@@ -158,16 +158,26 @@ function wg_apply_streaming_memory($peers, $confirm, $state_file) {
 function wg_tunnel_names() {
     global $config;
     $names = array();
-    $items = isset($config['wireguard']['tunnels']['item']) ? $config['wireguard']['tunnels']['item'] : array();
-    if (!is_array($items)) {
-        return $names;
-    }
-    if (isset($items['name'])) {
-        $items = array($items); // a single tunnel is stored without a list wrapper
-    }
-    foreach ($items as $t) {
-        if (!empty($t['name']) && !empty($t['descr'])) {
-            $names[$t['name']] = $t['descr'];
+    // Where pfSense keeps the tunnel list can differ by version, so check both places.
+    $paths = array(
+        array('wireguard', 'tunnels', 'item'),
+        array('installedpackages', 'wireguard', 'tunnels', 'item'),
+    );
+    foreach ($paths as $path) {
+        $node = $config;
+        foreach ($path as $key) {
+            $node = (is_array($node) && isset($node[$key])) ? $node[$key] : null;
+        }
+        if (!is_array($node)) {
+            continue;
+        }
+        if (isset($node['name'])) {
+            $node = array($node); // a single tunnel is stored without a list wrapper
+        }
+        foreach ($node as $t) {
+            if (is_array($t) && !empty($t['name']) && !empty($t['descr'])) {
+                $names[$t['name']] = $t['descr'];
+            }
         }
     }
     return $names;

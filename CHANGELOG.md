@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.1.3 - 2026-11-07
+
+### Fixed
+- `widget/wg_stream_monitor.widget.php` (VERSION 1.1.3): the tunnel description (e.g. "St-Alphonse") was not shown and the widget showed the interface name instead. The widget now looks for the tunnel list in both `wireguard` and `installedpackages/wireguard`.
+
 ## 1.1.2 - 2026-11-07
 
 ### Changed
