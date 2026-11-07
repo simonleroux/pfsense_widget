@@ -2,17 +2,6 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
-## 1.6.0 - 2026-11-07
-
-### Added
-- `widget/wan_throughput.widget.php` (VERSION 1.0.0): WAN Throughput widget. Shows download and upload over the last 5 minutes as a line graph, with the current value and the 5-minute peak. Each refresh takes one sample of the WAN interface counters (netstat, interface name from the pfSense config). Samples are kept in `/var/run/wan_throughput.json`.
-- `widget/include/wan_throughput.inc`: dashboard title "WAN Throughput".
-
-### Changed
-- `install.sh` (VERSION 1.6.0): installs and removes the WAN Throughput widget too.
-
-Not tested on pfSense: the byte counter columns of `netstat -bI` are assumed from FreeBSD output.
-
 ## 1.5.9 - 2026-11-07
 
 ### Changed

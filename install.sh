@@ -6,7 +6,7 @@
 # Installs, updates, checks and removes the checker and the dashboard widget.
 # Widget settings (threshold, sample time, watch list) are kept across updates.
 
-VERSION="1.6.0"
+VERSION="1.5.1"
 
 REPO_RAW=${WG_REPO_RAW:-https://raw.githubusercontent.com/simonleroux/pfsense_widget/main}
 REPO_TARBALL=${WG_TARBALL_URL:-https://github.com/simonleroux/pfsense_widget/archive/refs/heads/main.tar.gz}
@@ -18,8 +18,6 @@ INCLUDE_SRC="$SRC_DIR/widget/include/wireguard_streaming.inc"
 CORE_SRC="$SRC_DIR/widget/lib/wireguard_streaming_core.inc"
 PEERS_SRC="$SRC_DIR/widget/wireguard_streaming_peers.widget.php"
 PEERS_INCLUDE_SRC="$SRC_DIR/widget/include/wireguard_streaming_peers.inc"
-WAN_SRC="$SRC_DIR/widget/wan_throughput.widget.php"
-WAN_INCLUDE_SRC="$SRC_DIR/widget/include/wan_throughput.inc"
 
 BIN_DIR=${WG_STREAM_BIN_DIR:-/usr/local/bin}
 WIDGET_DIR=${WG_STREAM_WIDGET_DIR:-/usr/local/www/widgets/widgets}
@@ -32,8 +30,6 @@ INCLUDE="$INCLUDE_DIR/wireguard_streaming.inc"
 CORE="$WIDGET_DIR/wireguard_streaming_core.inc"
 PEERS="$WIDGET_DIR/wireguard_streaming_peers.widget.php"
 PEERS_INCLUDE="$INCLUDE_DIR/wireguard_streaming_peers.inc"
-WAN="$WIDGET_DIR/wan_throughput.widget.php"
-WAN_INCLUDE="$INCLUDE_DIR/wan_throughput.inc"
 
 say()  { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
@@ -134,8 +130,6 @@ check_sources() {
     [ -f "$CORE_SRC" ] || { warn "missing $CORE_SRC"; missing=1; }
     [ -f "$PEERS_SRC" ] || { warn "missing $PEERS_SRC"; missing=1; }
     [ -f "$PEERS_INCLUDE_SRC" ] || { warn "missing $PEERS_INCLUDE_SRC"; missing=1; }
-    [ -f "$WAN_SRC" ] || { warn "missing $WAN_SRC"; missing=1; }
-    [ -f "$WAN_INCLUDE_SRC" ] || { warn "missing $WAN_INCLUDE_SRC"; missing=1; }
     return $missing
 }
 
@@ -191,16 +185,6 @@ install_widget() {
         ok "WireGuard Peers widget installed at $PEERS"
     else
         warn "failed to install the WireGuard Peers widget"
-        return 1
-    fi
-
-    # The WAN Throughput widget (independent of the WireGuard ones)
-    if [ -f "$WAN_SRC" ] && [ -f "$WAN_INCLUDE_SRC" ] && [ -d "$INCLUDE_DIR" ] \
-        && cp "$WAN_SRC" "$WAN" && chmod 644 "$WAN" \
-        && cp "$WAN_INCLUDE_SRC" "$WAN_INCLUDE" && chmod 644 "$WAN_INCLUDE"; then
-        ok "WAN Throughput widget installed at $WAN"
-    else
-        warn "failed to install the WAN Throughput widget"
         return 1
     fi
 }
@@ -301,7 +285,7 @@ uninstall() {
         say "Cancelled."
         return 0
     fi
-    rm -f "$CHECKER" "$WIDGET" "$INCLUDE" "$OLD_WIDGET" "$OLD_INCLUDE" "$CORE" "$PEERS" "$PEERS_INCLUDE" "$WAN" "$WAN_INCLUDE"
+    rm -f "$CHECKER" "$WIDGET" "$INCLUDE" "$OLD_WIDGET" "$OLD_INCLUDE" "$CORE" "$PEERS" "$PEERS_INCLUDE"
     ok "removed $CHECKER, $WIDGET, $PEERS, $CORE and their title files (backups, if any, were kept)"
     say "Remove the widget from the dashboard manually if it is still added."
 }
