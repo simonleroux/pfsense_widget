@@ -10,6 +10,8 @@
 # Output: a JSON array with one object per peer.
 # Requires: wg (wireguard-tools, shipped with the pfSense WireGuard package), awk, mktemp, sleep.
 
+VERSION="1.0.0"
+
 set -eu
 
 SAMPLE=${1:-3}

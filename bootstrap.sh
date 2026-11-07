@@ -9,6 +9,8 @@
 #   WG_TARBALL_URL  archive to download (default: GitHub main branch)
 #   WG_DEST         where to unpack it   (default: /root/pfsense_widget)
 
+VERSION="1.0.0"
+
 set -eu
 
 URL=${WG_TARBALL_URL:-https://github.com/simonleroux/pfsense_widget/archive/refs/heads/main.tar.gz}

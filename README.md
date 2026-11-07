@@ -25,7 +25,8 @@ background sync. Keepalives are only a few bytes per second and stay under the t
 ## Layout
 
 ```
-install.sh                          interactive CLI installer (run on the firewall)
+install.sh                          pfSense menu: install, update, status, uninstall
+bootstrap.sh                        one-line download and start of the menu
 scripts/wg-stream-check.sh          POSIX sh, runs on the firewall, prints JSON
 widget/wg_stream_monitor.widget.php pfSense dashboard widget (renders + polls)
 ```
@@ -37,15 +38,37 @@ Requires pfSense 2.6+ with the WireGuard package. Confirm `wg` exists first:
 
 ### Option A: CLI menu (recommended)
 
-Copy the repo to the firewall (for example with `scp -r` or by cloning it there), then run as root
-from the console shell (option 8) or over SSH:
+Run this on the firewall, from the console shell (option 8) or over SSH:
 
 ```sh
-sh /root/pfsense-wg-stream-widget/install.sh
+curl -sL https://raw.githubusercontent.com/simonleroux/pfsense_widget/main/bootstrap.sh | sudo sh
 ```
 
-The menu can install the checker and widget, test the checker, show status, and uninstall.
+It downloads the project to `/root/pfsense_widget` and opens the menu:
+
+```
+=====================================
+  WireGuard Stream Monitor (pfSense)
+=====================================
+  Menu version:    1.0.0 (up to date)
+  Checker:         not installed (...)
+  Widget:          not installed (...)
+=====================================
+1) Install checker and widget
+2) Update installed (keeps your widget settings)
+3) Check status
+4) Uninstall
+0) Exit
+```
+
+- **Install** copies the checker and widget into place.
+- **Update installed** downloads the latest version from GitHub and reinstalls what is installed. Your widget settings are kept, and the menu restarts with the new version.
+- **Check status** shows the installed versions, checks `wg`, and runs the checker once.
+- **Uninstall** removes the checker and widget. Remove the widget from the dashboard yourself.
+
 Existing files are backed up as `*.bak` before being replaced.
+
+To run the menu from a copy you already have on the firewall: `sh /root/pfsense-wg-stream-widget/install.sh`
 
 ### Option B: Manual copy
 

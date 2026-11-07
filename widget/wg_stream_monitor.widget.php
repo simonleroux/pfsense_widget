@@ -6,6 +6,7 @@
  * of traffic. The data comes from scripts/wg-stream-check.sh.
  *
  * Install: copy to /usr/local/www/widgets/widgets/wg_stream_monitor.widget.php
+ * VERSION="1.0.0"
  */
 require_once("guiconfig.inc");
 
@@ -87,14 +88,10 @@ function wg_render_table($peers, $watch_peers) {
     }
 
     $names = wg_tunnel_names();
-    $streaming = 0;
-    $html = '<table class="table table-striped table-condensed"><thead><tr>'
+    $html ='<table class="table table-striped table-condensed"><thead><tr>'
           . '<th>Tunnel</th><th>Endpoint</th><th>Rate</th><th>Status</th>'
           . '</tr></thead><tbody>';
     foreach ($rows as $p) {
-        if ($p['status'] === 'streaming') {
-            $streaming++;
-        }
         $label = isset($names[$p['interface']]) ? $names[$p['interface']] : $p['interface'];
         $html .= '<tr>'
               . '<td title="' . htmlspecialchars($p['peer']) . '">' . htmlspecialchars($label) . '</td>'
@@ -105,7 +102,7 @@ function wg_render_table($peers, $watch_peers) {
     }
     $html .= '</tbody></table>';
 
-    return '<p><strong>' . $streaming . ' of ' . count($rows) . ' peers streaming</strong></p>' . $html;
+    return $html;
 }
 
 // ---- AJAX endpoint: the page script polls this URL --------------------------
@@ -118,11 +115,8 @@ if (isset($_REQUEST['ajax'])) {
 }
 // ----------------------------------------------------------------------------
 ?>
-<div class="panel panel-default">
-  <div class="panel-heading"><h2 class="panel-title">WireGuard Streaming</h2></div>
-  <div class="panel-body" id="<?=htmlspecialchars($wkey)?>-body">
-    <p>Sampling...</p>
-  </div>
+<div class="panel-body" id="<?=htmlspecialchars($wkey)?>-body">
+  <p>Sampling...</p>
 </div>
 <script>
 (function () {
