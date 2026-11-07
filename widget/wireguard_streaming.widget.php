@@ -3,21 +3,20 @@
  * wireguard_streaming.widget.php
  *
  * Fork of pfSense's WireGuard dashboard widget (wireguard.widget.php from the pfSense
- * WireGuard package) with a Streaming column added. Streaming comes from
- * scripts/wg-stream-check.sh, with the same confirmation failsafe as
- * wg_stream_monitor.widget.php.
+ * WireGuard package). The table has one row per peer with its streaming status.
+ * Streaming comes from scripts/wg-stream-check.sh, with a confirmation failsafe
+ * (a peer changes state only after N checks in a row).
  *
  * Based on the pfSense WireGuard package widget:
  *   Copyright (c) 2021-2026 Rubicon Communications, LLC (Netgate)
  *   Copyright (c) 2021 R. Christian McDonald, Vajonam
  *   Copyright (c) 2020 Ascrod
  *   Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
- * Changes in this fork: streaming column, streaming settings, failsafe.
+ * Changes in this fork: per-peer streaming rows, streaming settings, failsafe.
  *
  * Install: copy to /usr/local/www/widgets/widgets/wireguard_streaming.widget.php
  *          and widget/include/wireguard_streaming.inc to /usr/local/www/widgets/include/
- * Replace the stock WireGuard widget on the dashboard with this one (or keep both).
- * VERSION="1.2.1"
+ * VERSION="1.3.0"
  */
 
 // pfSense includes
@@ -71,18 +70,17 @@ function wgs_int($value, $min, $max, $default) {
     return ($n === false) ? $default : $n;
 }
 
-// Turns saved or posted values into safe settings. Includes the stock refresh and activity settings.
+// Turns saved or posted values into safe settings. Includes the stock refresh interval.
 function wgs_clean_settings($raw, $defaults, $wgg) {
     $raw = is_array($raw) ? $raw : array();
     $watch = isset($raw['watch_peers']) ? (string)$raw['watch_peers'] : '';
     return array(
-        'refresh_interval'  => wgs_int(isset($raw['refresh_interval']) ? $raw['refresh_interval'] : null, 0, 10, $wgg['default_widget_refresh_interval']),
-        'activity_threshold' => wgs_int(isset($raw['activity_threshold']) ? $raw['activity_threshold'] : null, 0, 31536000, $wgg['default_widget_activity_threshold']),
-        'threshold_kbps' => wgs_int(isset($raw['threshold_kbps']) ? $raw['threshold_kbps'] : null, 1, 1000000, $defaults['threshold_kbps']),
-        'confirm_checks' => wgs_int(isset($raw['confirm_checks']) ? $raw['confirm_checks'] : null, 1, 10, $defaults['confirm_checks']),
-        'sample_seconds' => wgs_int(isset($raw['sample_seconds']) ? $raw['sample_seconds'] : null, 1, 30, $defaults['sample_seconds']),
-        'stale_seconds'  => wgs_int(isset($raw['stale_seconds']) ? $raw['stale_seconds'] : null, 10, 3600, $defaults['stale_seconds']),
-        'watch_peers'    => substr(preg_replace('/[^A-Za-z0-9+\/=_.:, -]/', '', $watch), 0, 500),
+        'refresh_interval' => wgs_int(isset($raw['refresh_interval']) ? $raw['refresh_interval'] : null, 0, 10, $wgg['default_widget_refresh_interval']),
+        'threshold_kbps'   => wgs_int(isset($raw['threshold_kbps']) ? $raw['threshold_kbps'] : null, 1, 1000000, $defaults['threshold_kbps']),
+        'confirm_checks'   => wgs_int(isset($raw['confirm_checks']) ? $raw['confirm_checks'] : null, 1, 10, $defaults['confirm_checks']),
+        'sample_seconds'   => wgs_int(isset($raw['sample_seconds']) ? $raw['sample_seconds'] : null, 1, 30, $defaults['sample_seconds']),
+        'stale_seconds'    => wgs_int(isset($raw['stale_seconds']) ? $raw['stale_seconds'] : null, 10, 3600, $defaults['stale_seconds']),
+        'watch_peers'      => substr(preg_replace('/[^A-Za-z0-9+\/=_.:, -]/', '', $watch), 0, 500),
     );
 }
 
@@ -175,26 +173,10 @@ function wgs_apply_memory($peers, $confirm, $state_file) {
     return $peers;
 }
 
-// Per tunnel: how many watched peers are declared streaming, out of how many are shown
-function wgs_stream_counts($peers) {
-    $counts = array();
-    foreach ($peers as $p) {
-        $if = $p['interface'];
-        if (!isset($counts[$if])) {
-            $counts[$if] = array('streaming' => 0, 'total' => 0);
-        }
-        $counts[$if]['total']++;
-        if ($p['status'] === 'streaming') {
-            $counts[$if]['streaming']++;
-        }
-    }
-    return $counts;
-}
-
-// Table body: one row per tunnel, as in the stock widget, plus the streaming column
-function wgs_compose_body($widgetkey, $activity_threshold, $s, $checker, $state_file) {
+// Table body: one row per peer. A tunnel with no peer from the checker gets one row
+// with the tunnel details only.
+function wgs_compose_body($s, $checker, $state_file) {
     $a_devices = wg_get_status();
-    $current_time = (new DateTimeImmutable)->getTimestamp();
 
     if (empty(config_get_path('installedpackages/wireguard/tunnels/item', []))) {
         return '<tr><td colspan="8">' . htmlspecialchars(gettext('No WireGuard tunnels have been configured.')) . '</td></tr>';
@@ -207,52 +189,46 @@ function wgs_compose_body($widgetkey, $activity_threshold, $s, $checker, $state_
     if ($peers !== null) {
         $peers = wgs_apply_memory($peers, $s['confirm_checks'], $state_file);
     }
-    $counts = ($peers === null) ? array() : wgs_stream_counts($peers);
 
     $html = '';
     foreach ($a_devices as $device_name => $device) {
-        $active_peers = array_filter($device['peers'], function ($x) use ($current_time, $activity_threshold) {
-            return (($activity_threshold == 0) || (($current_time - $x['latest_handshake']) <= $activity_threshold));
-        });
-
-        if ($peers === null) {
-            $streaming_cell = htmlspecialchars(gettext('checker failed'));
-        } else {
-            $c = isset($counts[$device_name]) ? $counts[$device_name] : array('streaming' => 0, 'total' => 0);
-            $streaming_cell = htmlspecialchars($c['streaming'] . ' ' . gettext('of') . ' ' . $c['total']);
-        }
-
-        $html .= '<tr>'
-            . '<td>' . wg_interface_status_icon($device['status'])
+        $tunnel_cells = '<td>' . wg_interface_status_icon($device['status'])
             . ' <a href="wg/vpn_wg_tunnels_edit.php?tun=' . htmlspecialchars($device_name) . '">' . htmlspecialchars($device_name) . '</a></td>'
-            . '<td>' . htmlspecialchars(wg_truncate_pretty($device['config']['descr'], 16)) . '</td>'
-            . '<td>' . htmlspecialchars(count($active_peers)) . '</td>'
-            . '<td>' . $streaming_cell . '</td>'
-            . '<td>' . htmlspecialchars($device['listen_port']) . '</td>'
-            . '<td>' . htmlspecialchars(format_bytes($device['transfer_rx'])) . '</td>'
-            . '<td>' . htmlspecialchars(format_bytes($device['transfer_tx'])) . '</td>'
-            . '</tr>';
+            . '<td>' . htmlspecialchars(wg_truncate_pretty($device['config']['descr'], 16)) . '</td>';
+        $traffic_cells = '<td>' . htmlspecialchars(format_bytes($device['transfer_rx'])) . '</td>'
+            . '<td>' . htmlspecialchars(format_bytes($device['transfer_tx'])) . '</td>';
 
-        // Streaming details for each peer of this tunnel, from the checker
+        $mine = array();
         if ($peers !== null) {
             foreach ($peers as $p) {
-                if ($p['interface'] !== $device_name) {
-                    continue;
+                if ($p['interface'] === $device_name) {
+                    $mine[] = $p;
                 }
-                $pending = '';
-                if (!empty($p['pending'])) {
-                    $pending = ' <small class="text-muted">' . htmlspecialchars($p['pending']) . ' '
-                        . (int)$p['count'] . ' of ' . (int)$s['confirm_checks'] . '</small>';
-                }
-                $html .= '<tr>'
-                    . '<td></td>'
-                    . '<td colspan="2" title="' . htmlspecialchars($p['peer']) . '">'
-                    . htmlspecialchars(substr($p['peer'], 0, 10)) . '... ' . htmlspecialchars($p['endpoint']) . '</td>'
-                    . '<td>' . htmlspecialchars(number_format($p['kbps'], 1)) . ' kbps</td>'
-                    . '<td>' . wgs_status_badge($p['status']) . $pending . '</td>'
-                    . '<td colspan="2"><small class="text-muted">' . htmlspecialchars($p['allowed_ips']) . '</small></td>'
-                    . '</tr>';
             }
+        }
+
+        if (count($mine) === 0) {
+            $note = ($peers === null) ? gettext('checker failed') : gettext('no peers');
+            $html .= '<tr>' . $tunnel_cells
+                . '<td colspan="4"><small class="text-muted">' . htmlspecialchars($note) . '</small></td>'
+                . $traffic_cells . '</tr>';
+            continue;
+        }
+
+        foreach ($mine as $p) {
+            $pending = '';
+            if (!empty($p['pending'])) {
+                $pending = ' <small class="text-muted">' . htmlspecialchars($p['pending']) . ' '
+                    . (int)$p['count'] . ' of ' . (int)$s['confirm_checks'] . '</small>';
+            }
+            $html .= '<tr>' . $tunnel_cells
+                . '<td title="' . htmlspecialchars($p['peer']) . '">' . htmlspecialchars(substr($p['peer'], 0, 10)) . '...<br>'
+                . '<small class="text-muted">' . htmlspecialchars($p['endpoint']) . '</small></td>'
+                . '<td>' . htmlspecialchars(number_format($p['kbps'], 1)) . ' kbps</td>'
+                . '<td>' . wgs_status_badge($p['status']) . $pending . '</td>'
+                . '<td><small>' . htmlspecialchars($p['allowed_ips']) . '</small></td>'
+                . $traffic_cells
+                . '</tr>';
         }
     }
     return $html;
@@ -260,7 +236,7 @@ function wgs_compose_body($widgetkey, $activity_threshold, $s, $checker, $state_
 
 // ---- AJAX refresh: the dashboard's refresh system posts here -----------------
 if (isset($_POST['ajax'])) {
-    print(wgs_compose_body($widgetkey_local, $settings['activity_threshold'], $settings, $checker, $state_file));
+    print(wgs_compose_body($settings, $checker, $state_file));
     exit();
 }
 ?>
@@ -269,14 +245,15 @@ if (isset($_POST['ajax'])) {
 			<thead>
 				<th><?=gettext('Tunnel')?></th>
 				<th><?=gettext('Description')?></th>
-				<th><?=(($settings['activity_threshold'] == 0) ? gettext('Peers') : gettext('Active Peers'))?></th>
-				<th><?=gettext('Streaming')?></th>
-				<th><?=gettext('Listen Port')?></th>
+				<th><?=gettext('Peer')?></th>
+				<th><?=gettext('Rate')?></th>
+				<th><?=gettext('Status')?></th>
+				<th><?=gettext('Allowed IPs')?></th>
 				<th><?=gettext('RX')?></th>
 				<th><?=gettext('TX')?></th>
 			</thead>
 			<tbody id="<?=htmlspecialchars($widgetkey_local)?>">
-				<?=wgs_compose_body($widgetkey_local, $settings['activity_threshold'], $settings, $checker, $state_file)?>
+				<?=wgs_compose_body($settings, $checker, $state_file)?>
 			</tbody>
 		</table>
 	</div>
@@ -296,14 +273,6 @@ $footer_id = isset($widget_panel_footer_id) ? $widget_panel_footer_id : 'widget-
 			<div class="col-sm-8">
 				<input type="number" id="refresh_interval" name="refresh_interval" value="<?=htmlspecialchars($settings['refresh_interval'])?>" min="0" max="10" class="form-control" />
 				<span class="help-block"><?=gettext('Widget refresh interval (in ticks, 0 to disable).')?></span>
-			</div>
-		</div>
-
-		<div class="form-group">
-			<label for="activity_threshold" class="col-sm-4 control-label"><?=gettext('Activity Threshold')?></label>
-			<div class="col-sm-8">
-				<input type="number" id="activity_threshold" name="activity_threshold" value="<?=htmlspecialchars($settings['activity_threshold'])?>" min="0" class="form-control" />
-				<span class="help-block"><?=gettext('Peer activity threshold in seconds (0 to show all peers).')?></span>
 			</div>
 		</div>
 
@@ -340,7 +309,7 @@ $footer_id = isset($widget_panel_footer_id) ? $widget_panel_footer_id : 'widget-
 		</div>
 
 		<div class="form-group">
-			<label for="watch_peers" class="col-sm-4 control-label"><?=gettext('Only count these peers')?></label>
+			<label for="watch_peers" class="col-sm-4 control-label"><?=gettext('Only show these peers')?></label>
 			<div class="col-sm-8">
 				<input type="text" id="watch_peers" name="watch_peers" value="<?=htmlspecialchars($settings['watch_peers'])?>" class="form-control" />
 				<span class="help-block"><?=gettext('Comma-separated public key prefixes or allowed IPs. Empty = all peers.')?></span>

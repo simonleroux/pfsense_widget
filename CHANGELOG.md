@@ -2,6 +2,11 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
+## 1.3.0 - 2026-11-07
+
+### Changed
+- `widget/wireguard_streaming.widget.php` (VERSION 1.3.0): the table has one row per peer instead of a tunnel row plus peer rows. Columns: Tunnel, Description, Peer, Rate, Status, Allowed IPs, RX, TX. The per-tunnel "Streaming" count, "Active Peers" and "Listen Port" columns are removed, and so is the Activity Threshold setting. A tunnel with no peer from the checker shows one row with its traffic totals.
+
 ## 1.2.1 - 2026-11-07
 
 ### Changed
