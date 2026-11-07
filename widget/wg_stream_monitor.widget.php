@@ -261,4 +261,3 @@ $footer_id = isset($widget_panel_footer_id) ? $widget_panel_footer_id : 'widget-
 </script>
 </div><div id="<?=htmlspecialchars($footer_id)?>" class="panel-footer collapse">
 <?=wg_settings_form($wkey, $settings)?>
-</div>
