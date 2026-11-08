@@ -16,7 +16,7 @@
  * Install: copy to /usr/local/www/widgets/widgets/wireguard_streaming.widget.php
  *          with widget/lib/wireguard_streaming_core.inc in the same folder, and
  *          widget/include/wireguard_streaming.inc to /usr/local/www/widgets/include/
- * VERSION="1.5.3"
+ * VERSION="1.5.4"
  */
 
 // pfSense includes
@@ -115,10 +115,10 @@ $footer_id = isset($widget_panel_footer_id) ? $widget_panel_footer_id : 'widget-
 		</div>
 
 		<div class="form-group">
-			<label for="sample_seconds" class="col-sm-4 control-label"><?=gettext('Sample time (seconds)')?></label>
+			<label for="sample_seconds" class="col-sm-4 control-label"><?=gettext('Minimum sample gap (seconds)')?></label>
 			<div class="col-sm-8">
 				<input type="number" id="sample_seconds" name="sample_seconds" value="<?=htmlspecialchars($settings['sample_seconds'])?>" min="1" max="30" class="form-control" />
-				<span class="help-block"><?=gettext('Time between the two counter samples. Each refresh blocks for this long.')?></span>
+				<span class="help-block"><?=gettext('Minimum time between counter samples. Rates are measured between refreshes, and calls sooner than this reuse the last rate.')?></span>
 			</div>
 		</div>
 
