@@ -2,7 +2,7 @@
 
 Every change to the scripts is recorded here. Each script has a `VERSION` line; bump it when you change that file and note the new version in the entry below.
 
-## 1.6.1 - 2026-11-08
+## 1.5.10 - 2026-11-08
 
 ### Fixed
 - `scripts/wg-stream-check.sh` (VERSION 1.1.0): the checker no longer sleeps. Each call compares the counters with the last sample saved in `/var/run/wg-stream-check.state`, so a refresh returns at once. The sleep was holding a web server worker for 3 seconds on every refresh, which made the built-in traffic graph stall while the tunnels were up.
